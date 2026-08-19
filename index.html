@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OUT OF BLUE</title>
+  <meta name="description" content="OUT OF BLUE — 2026 SEPTEMBER EXHIBITION IN SEOUL">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+    :root {
+      --navy: #002576;
+      --white: #f4f4f2;
+      --event-blue: #3668fe;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    html, body {
+      overflow-x: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+    body {
+      font-family: Pretendard, "Noto Sans KR", sans-serif;
+      background: #000;
+      color: var(--white);
+      min-width: 320px;
+    }
+    a { color: inherit; text-decoration: none; }
+    img, video { display: block; }
+
+    .hero {
+      position: sticky;
+      top: 0;
+      z-index: 0;
+      width: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+    .hero-media {
+      width: 100%;
+    }
+    .hero video {
+      width: 100%;
+      height: auto;
+      will-change: opacity;
+      transition: opacity 0.48s cubic-bezier(0.2, 0.85, 0.25, 1);
+    }
+    .hero.is-out video {
+      opacity: 0;
+    }
+
+    .scroll-down {
+      position: fixed;
+      left: 50%;
+      bottom: max(28px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      z-index: 40;
+      background: none;
+      border: 0;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: inherit;
+      outline: none;
+      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .scroll-down.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 16px);
+    }
+
+    .to-top {
+      position: fixed;
+      right: max(16px, env(safe-area-inset-right));
+      bottom: max(20px, env(safe-area-inset-bottom));
+      z-index: 50;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      background: var(--event-blue);
+      color: #fff;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      box-shadow: 0 8px 20px rgba(47, 91, 255, 0.38);
+      transition: opacity 0.25s ease, transform 0.25s ease, filter 0.2s ease;
+    }
+    .to-top.is-show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+    .to-top:hover { filter: brightness(1.08); }
+    .to-top svg {
+      display: block;
+      width: 14px;
+      height: 9px;
+      fill: currentColor;
+      transform: rotate(180deg);
+    }
+    .scroll-down span {
+      font-weight: 500;
+      font-size: 12px;
+      line-height: 1.5;
+      letter-spacing: -0.26px;
+    }
+    .chevrons {
+      position: relative;
+      width: 14px;
+      height: 27px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .chevrons svg {
+      display: block;
+      width: 14px;
+      height: 9px;
+      opacity: 0.5;
+      fill: currentColor;
+    }
+    .chevrons svg:nth-child(1) {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+    }
+    .chevrons svg:nth-child(3) { opacity: 1; }
+    .chevrons.animation svg {
+      animation: chevron-pass 2s ease infinite;
+    }
+    .chevrons.animation svg:nth-child(2) {
+      animation: chevron-pass-bright 2s ease infinite;
+    }
+    @keyframes chevron-pass {
+      0% { transform: translateY(0); }
+      50%, 100% { transform: translateY(9px); opacity: 0.5; }
+    }
+    @keyframes chevron-pass-bright {
+      0% { transform: translateY(0); }
+      50%, 100% { transform: translateY(9px); opacity: 1; }
+    }
+
+    .stills {
+      position: relative;
+      z-index: 1;
+      background: #000;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .still {
+      width: 100%;
+      background: #000;
+      opacity: 0;
+      transform: translateY(56px);
+      filter: blur(12px);
+      pointer-events: none;
+      transition:
+        opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+        filter 0.5s ease;
+    }
+    .still.is-in {
+      opacity: 1;
+      transform: translateY(0);
+      filter: none;
+      pointer-events: auto;
+    }
+    .still img {
+      width: 100%;
+      height: auto;
+      clip-path: inset(6% 0 6% 0);
+      transition: clip-path 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .still.is-in img {
+      clip-path: inset(0);
+    }
+
+    .events {
+      position: relative;
+      z-index: 1;
+      background: #fff;
+      padding: 28px 16px calc(48px + env(safe-area-inset-bottom));
+      opacity: 0;
+      transform: translateY(56px);
+      filter: blur(12px);
+      pointer-events: none;
+      transition:
+        opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+        filter 0.5s ease;
+    }
+    .events.is-in {
+      opacity: 1;
+      transform: translateY(0);
+      filter: none;
+      pointer-events: auto;
+    }
+    .event-grid {
+      display: grid;
+      gap: 28px;
+      width: min(100%, 920px);
+      margin: 0 auto;
+    }
+    .event-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(28px);
+      transition:
+        opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .events.is-in .event-card {
+      opacity: 1;
+      transform: none;
+    }
+    .events.is-in .event-card:nth-child(2) {
+      transition-delay: 0.12s;
+    }
+    .event-tag {
+      display: block;
+      width: 100%;
+      background: none;
+      color: #111;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      line-height: 1.2;
+      padding: 8px 10px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .event-block {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+    .event-book {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      isolation: isolate;
+      width: 100%;
+      min-height: 72px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      background-color: var(--event-blue);
+      background-image: url("media/photo/blue-paper.png");
+      background-size: 168px;
+      background-repeat: repeat;
+      transition: filter 0.2s ease;
+    }
+    .event-book::before,
+    .event-book::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .event-book::before {
+      z-index: 0;
+      background-image: url("media/photo/blue-paper.png");
+      background-size: 92px;
+      background-position: 18px 10px;
+      mix-blend-mode: overlay;
+      opacity: 0.7;
+    }
+    .event-book::after {
+      z-index: 1;
+      opacity: 0.28;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.28  0 0 0 0 0.85  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+      background-size: 140px 140px;
+    }
+    .event-book span {
+      position: relative;
+      z-index: 2;
+    }
+    .event-book:hover {
+      filter: brightness(1.06);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero video,
+      .scroll-down,
+      .still,
+      .still img,
+      .events,
+      .event-card {
+        transition: none;
+      }
+      .still,
+      .events,
+      .event-card {
+        opacity: 1;
+        transform: none;
+        filter: none;
+        pointer-events: auto;
+      }
+      .still img { clip-path: none; }
+    }
+
+    @media (max-width: 767px) {
+      .hero {
+        height: 100vh;
+        height: 100svh;
+      }
+      .hero-media {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .hero video {
+        width: 100%;
+        height: auto;
+        max-height: 100%;
+        object-fit: contain;
+      }
+    }
+
+    @media (max-width: 479px) {
+      .scroll-down { bottom: max(20px, env(safe-area-inset-bottom)); }
+    }
+
+    @media (min-width: 480px) and (max-width: 767px) {
+      .scroll-down { bottom: 36px; }
+    }
+
+    @media (min-width: 768px) {
+      .events { padding: 40px 24px calc(64px + env(safe-area-inset-bottom)); }
+      .event-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+        width: min(100%, 980px);
+      }
+      .event-book { min-height: 80px; }
+    }
+
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .scroll-down { bottom: 48px; }
+      .still img { width: 100%; }
+    }
+
+    @media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
+      .still {
+        display: flex;
+        justify-content: center;
+        padding: 32px 0 0;
+      }
+      .still img { width: min(100%, 680px); }
+      .stills { padding-bottom: 48px; }
+      .event-grid { width: min(100%, 880px); }
+    }
+
+    @media (min-width: 1440px) and (hover: hover) and (pointer: fine) {
+      .still img { width: min(100%, 760px); }
+    }
+
+    @media (max-height: 500px) and (orientation: landscape) {
+      .scroll-down { bottom: 12px; }
+      .scroll-down span { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero" id="top">
+    <div class="hero-media">
+      <video autoplay muted loop playsinline preload="auto" src="media/video/hero-web.mp4"></video>
+    </div>
+  </section>
+
+  <button class="scroll-down" type="button" aria-label="아래로 스크롤">
+    <span>SCROLL DOWN</span>
+    <div class="chevrons animation" aria-hidden="true">
+      <svg viewBox="0 0 14 9" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.9683 0.946405L6.86191 6.05279L1.75552 0.946405L0.551936 2.14999L6.86191 8.45996L13.1719 2.14999L11.9683 0.946405Z"/></svg>
+      <svg viewBox="0 0 14 9" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.9683 0.946405L6.86191 6.05279L1.75552 0.946405L0.551936 2.14999L6.86191 8.45996L13.1719 2.14999L11.9683 0.946405Z"/></svg>
+      <svg viewBox="0 0 14 9" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.9683 0.946405L6.86191 6.05279L1.75552 0.946405L0.551936 2.14999L6.86191 8.45996L13.1719 2.14999L11.9683 0.946405Z"/></svg>
+      <svg viewBox="0 0 14 9" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.9683 0.946405L6.86191 6.05279L1.75552 0.946405L0.551936 2.14999L6.86191 8.45996L13.1719 2.14999L11.9683 0.946405Z"/></svg>
+    </div>
+  </button>
+
+  <section class="stills" id="stills">
+    <figure class="still">
+      <img src="media/photo/poster-01.png" alt="OUT OF BLUE poster">
+    </figure>
+  </section>
+
+  <section class="events" id="events" aria-label="예매 정보">
+    <div class="event-grid">
+      <article class="event-card">
+        <p class="event-tag">PHOTO EXHIBITION</p>
+        <a class="event-block event-book" href="exhibition/"><span>예매하기</span></a>
+      </article>
+
+      <article class="event-card">
+        <p class="event-tag">PRIVATE SCREENING EVENT</p>
+        <a class="event-block event-book" href="screening/"><span>예매하기</span></a>
+      </article>
+    </div>
+  </section>
+
+  <button class="to-top" type="button" aria-label="맨 위로">
+    <svg viewBox="0 0 14 9" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.9683 0.946405L6.86191 6.05279L1.75552 0.946405L0.551936 2.14999L6.86191 8.45996L13.1719 2.14999L11.9683 0.946405Z"/></svg>
+  </button>
+
+  <script>
+    const hero = document.querySelector(".hero");
+    const scrollDown = document.querySelector(".scroll-down");
+    const stills = document.getElementById("stills");
+    const reveals = document.querySelectorAll(".still, .events");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let videoOut = false;
+    let ticking = false;
+
+    scrollDown.addEventListener("click", () => {
+      stills.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
+
+    const snapVideo = () => {
+      const progress = window.scrollY / Math.max(hero.offsetHeight, 1);
+      if (!videoOut && progress > 0.08) {
+        videoOut = true;
+        hero.classList.add("is-out");
+        scrollDown.classList.add("is-hidden");
+      } else if (videoOut && progress < 0.03) {
+        videoOut = false;
+        hero.classList.remove("is-out");
+        scrollDown.classList.remove("is-hidden");
+      }
+    };
+
+    window.addEventListener("scroll", () => {
+      if (reduceMotion) return;
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          snapVideo();
+          ticking = false;
+        });
+      }
+    }, { passive: true });
+    snapVideo();
+
+    const toTop = document.querySelector(".to-top");
+    const toggleToTop = () => {
+      toTop.classList.toggle("is-show", window.scrollY > 240);
+    };
+    toTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    });
+    window.addEventListener("scroll", toggleToTop, { passive: true });
+    toggleToTop();
+
+    if (reduceMotion) {
+      reveals.forEach((el) => el.classList.add("is-in"));
+    } else {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle("is-in", entry.isIntersecting);
+        });
+      }, { threshold: 0.12, rootMargin: "0px 0px -12% 0px" });
+
+      reveals.forEach((el) => observer.observe(el));
+    }
+  </script>
+</body>
+</html>
