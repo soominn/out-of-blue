@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OUT OF BLUE</title>
   <meta name="description" content="OUT OF BLUE — 2026 SEPTEMBER EXHIBITION IN SEOUL">
+  <link rel="icon" href="media/photo/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="media/photo/favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="media/photo/apple-touch-icon.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <style>
     :root {
@@ -14,7 +17,6 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
     html, body {
       overflow-x: hidden;
       scrollbar-width: none;
@@ -36,12 +38,12 @@
     img, video { display: block; }
 
     .hero {
-      position: sticky;
-      top: 0;
+      position: relative;
       z-index: 0;
       width: 100%;
       overflow: hidden;
       background: #000;
+      contain: layout paint;
     }
     .hero-media {
       width: 100%;
@@ -49,11 +51,13 @@
     .hero video {
       width: 100%;
       height: auto;
-      will-change: opacity;
-      transition: opacity 0.48s cubic-bezier(0.2, 0.85, 0.25, 1);
+      pointer-events: none;
+      transition: opacity 0.35s ease;
     }
     .hero.is-out video {
       opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .scroll-down {
@@ -73,7 +77,6 @@
       font-family: inherit;
       outline: none;
       text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
       transition: opacity 0.35s ease, transform 0.35s ease;
     }
     .scroll-down.is-hidden {
@@ -160,33 +163,27 @@
       z-index: 1;
       background: #000;
       padding-bottom: env(safe-area-inset-bottom);
+      content-visibility: auto;
+      contain-intrinsic-size: 1200px;
     }
     .still {
       width: 100%;
       background: #000;
       opacity: 0;
-      transform: translateY(56px);
-      filter: blur(12px);
+      transform: translateY(24px);
       pointer-events: none;
       transition:
-        opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-        filter 0.5s ease;
+        opacity 0.4s ease,
+        transform 0.4s ease;
     }
     .still.is-in {
       opacity: 1;
       transform: translateY(0);
-      filter: none;
       pointer-events: auto;
     }
     .still img {
       width: 100%;
       height: auto;
-      clip-path: inset(6% 0 6% 0);
-      transition: clip-path 0.65s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .still.is-in img {
-      clip-path: inset(0);
     }
 
     .events {
@@ -195,18 +192,17 @@
       background: #fff;
       padding: 28px 16px calc(48px + env(safe-area-inset-bottom));
       opacity: 0;
-      transform: translateY(56px);
-      filter: blur(12px);
+      transform: translateY(24px);
       pointer-events: none;
       transition:
-        opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-        filter 0.5s ease;
+        opacity 0.4s ease,
+        transform 0.4s ease;
+      content-visibility: auto;
+      contain-intrinsic-size: 400px;
     }
     .events.is-in {
       opacity: 1;
       transform: translateY(0);
-      filter: none;
       pointer-events: auto;
     }
     .event-grid {
@@ -301,7 +297,6 @@
       .hero video,
       .scroll-down,
       .still,
-      .still img,
       .events,
       .event-card {
         transition: none;
@@ -311,10 +306,8 @@
       .event-card {
         opacity: 1;
         transform: none;
-        filter: none;
         pointer-events: auto;
       }
-      .still img { clip-path: none; }
     }
 
     @media (max-width: 767px) {
@@ -333,6 +326,14 @@
         height: auto;
         max-height: 100%;
         object-fit: contain;
+      }
+      .still,
+      .events,
+      .event-card {
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+        transition: none;
       }
     }
 
@@ -383,7 +384,7 @@
 <body>
   <section class="hero" id="top">
     <div class="hero-media">
-      <video autoplay muted loop playsinline preload="auto" src="media/video/hero-web.mp4"></video>
+      <video id="hero-video" autoplay muted loop playsinline preload="metadata"></video>
     </div>
   </section>
 
@@ -399,10 +400,10 @@
 
   <section class="stills" id="stills">
     <figure class="still">
-      <img src="media/photo/poster-01.png" alt="OUT OF BLUE poster">
+      <img src="media/photo/poster-01.png" alt="OUT OF BLUE poster" decoding="async" fetchpriority="high">
     </figure>
     <figure class="still">
-      <img src="media/photo/poster-02.png" alt="OUT OF BLUE poster">
+      <img src="media/photo/poster-02.png" alt="OUT OF BLUE poster" loading="lazy" decoding="async">
     </figure>
   </section>
 
@@ -426,60 +427,109 @@
 
   <script>
     const hero = document.querySelector(".hero");
+    const heroVideo = document.getElementById("hero-video");
     const scrollDown = document.querySelector(".scroll-down");
     const stills = document.getElementById("stills");
+    const toTop = document.querySelector(".to-top");
     const reveals = document.querySelectorAll(".still, .events");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
     let videoOut = false;
     let ticking = false;
+    let scrollAnim = 0;
+    let resumeTimer = 0;
+
+    heroVideo.src = "media/video/hero-web.mp4";
+    heroVideo.preload = "metadata";
+    const playHero = () => {
+      const play = heroVideo.play();
+      if (play && typeof play.catch === "function") play.catch(() => {});
+    };
+    heroVideo.addEventListener("loadeddata", playHero, { once: true });
+    playHero();
+
+    const cancelScrollAnim = () => {
+      if (!scrollAnim) return;
+      cancelAnimationFrame(scrollAnim);
+      scrollAnim = 0;
+    };
+
+    // 맨 위 이동 애니메이션 중에도 휠/터치가 즉시 먹히도록 애니만 끊음
+    window.addEventListener("wheel", cancelScrollAnim, { passive: true });
+    window.addEventListener("touchstart", cancelScrollAnim, { passive: true });
+
+    const scrollToY = (top) => {
+      cancelScrollAnim();
+      if (reduceMotion) {
+        window.scrollTo(0, top);
+        return;
+      }
+      const start = window.scrollY;
+      const delta = top - start;
+      if (Math.abs(delta) < 1) return;
+      const duration = Math.min(420, Math.max(180, Math.abs(delta) * 0.22));
+      const startTime = performance.now();
+      const step = (now) => {
+        const t = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        window.scrollTo(0, start + delta * eased);
+        if (t < 1) scrollAnim = requestAnimationFrame(step);
+        else scrollAnim = 0;
+      };
+      scrollAnim = requestAnimationFrame(step);
+    };
 
     scrollDown.addEventListener("click", () => {
-      stills.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      scrollToY(stills.getBoundingClientRect().top + window.scrollY);
     });
 
-    const snapVideo = () => {
-      const progress = window.scrollY / Math.max(hero.offsetHeight, 1);
-      if (!videoOut && progress > 0.08) {
-        videoOut = true;
-        hero.classList.add("is-out");
-        scrollDown.classList.add("is-hidden");
-      } else if (videoOut && progress < 0.03) {
-        videoOut = false;
-        hero.classList.remove("is-out");
-        scrollDown.classList.remove("is-hidden");
+    const setVideoOut = (out) => {
+      if (videoOut === out) return;
+      videoOut = out;
+      hero.classList.toggle("is-out", out);
+      scrollDown.classList.toggle("is-hidden", out);
+      clearTimeout(resumeTimer);
+      if (out) {
+        heroVideo.pause();
+      } else {
+        // 스크롤 복귀 직후 play가 휠을 잡아먹지 않도록 잠깐 미룸
+        resumeTimer = setTimeout(playHero, 120);
       }
     };
 
+    const snapVideo = () => {
+      const progress = window.scrollY / Math.max(hero.offsetHeight, 1);
+      if (!videoOut && progress > 0.08) setVideoOut(true);
+      else if (videoOut && progress < 0.03) setVideoOut(false);
+    };
+
     window.addEventListener("scroll", () => {
-      if (reduceMotion) return;
       if (!ticking) {
         ticking = true;
         requestAnimationFrame(() => {
           snapVideo();
+          toTop.classList.toggle("is-show", window.scrollY > 240);
           ticking = false;
         });
       }
     }, { passive: true });
     snapVideo();
+    toTop.classList.toggle("is-show", window.scrollY > 240);
 
-    const toTop = document.querySelector(".to-top");
-    const toggleToTop = () => {
-      toTop.classList.toggle("is-show", window.scrollY > 240);
-    };
     toTop.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+      scrollToY(0);
     });
-    window.addEventListener("scroll", toggleToTop, { passive: true });
-    toggleToTop();
 
-    if (reduceMotion) {
+    if (reduceMotion || isMobile) {
       reveals.forEach((el) => el.classList.add("is-in"));
     } else {
-      const observer = new IntersectionObserver((entries) => {
+      const observer = new IntersectionObserver((entries, obs) => {
         entries.forEach((entry) => {
-          entry.target.classList.toggle("is-in", entry.isIntersecting);
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-in");
+          obs.unobserve(entry.target);
         });
-      }, { threshold: 0.12, rootMargin: "0px 0px -12% 0px" });
+      }, { threshold: 0.08, rootMargin: "0px 0px -8% 0px" });
 
       reveals.forEach((el) => observer.observe(el));
     }
