@@ -384,7 +384,7 @@
 <body>
   <section class="hero" id="top">
     <div class="hero-media">
-      <video id="hero-video" autoplay muted loop playsinline preload="metadata"></video>
+      <video id="hero-video" autoplay loop playsinline preload="metadata"></video>
     </div>
   </section>
 
@@ -438,15 +438,37 @@
     let ticking = false;
     let scrollAnim = 0;
     let resumeTimer = 0;
+    let audioUnlocked = false;
 
     heroVideo.src = "media/video/hero-web.mp4";
     heroVideo.preload = "metadata";
-    const playHero = () => {
+    heroVideo.muted = false;
+
+    const playHero = (withSound = true) => {
+      if (withSound) heroVideo.muted = false;
       const play = heroVideo.play();
-      if (play && typeof play.catch === "function") play.catch(() => {});
+      if (play && typeof play.catch === "function") {
+        play.catch(() => {
+          // 브라우저가 소리 있는 자동재생을 막으면 일단 음소거로 재생 후,
+          // 첫 클릭/터치에서 소리 해제
+          heroVideo.muted = true;
+          heroVideo.play().catch(() => {});
+        });
+      }
     };
-    heroVideo.addEventListener("loadeddata", playHero, { once: true });
-    playHero();
+
+    const unlockAudio = () => {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      if (!videoOut) playHero(true);
+    };
+
+    ["pointerdown", "touchstart", "keydown", "wheel"].forEach((type) => {
+      window.addEventListener(type, unlockAudio, { once: true, passive: true });
+    });
+
+    heroVideo.addEventListener("loadeddata", () => playHero(true), { once: true });
+    playHero(true);
 
     const cancelScrollAnim = () => {
       if (!scrollAnim) return;
@@ -480,6 +502,7 @@
     };
 
     scrollDown.addEventListener("click", () => {
+      unlockAudio();
       scrollToY(stills.getBoundingClientRect().top + window.scrollY);
     });
 
@@ -490,10 +513,13 @@
       scrollDown.classList.toggle("is-hidden", out);
       clearTimeout(resumeTimer);
       if (out) {
+        heroVideo.muted = true;
         heroVideo.pause();
       } else {
         // 스크롤 복귀 직후 play가 휠을 잡아먹지 않도록 잠깐 미룸
-        resumeTimer = setTimeout(playHero, 120);
+        resumeTimer = setTimeout(() => {
+          playHero(true);
+        }, 120);
       }
     };
 
@@ -517,6 +543,7 @@
     toTop.classList.toggle("is-show", window.scrollY > 240);
 
     toTop.addEventListener("click", () => {
+      unlockAudio();
       scrollToY(0);
     });
 
