@@ -254,6 +254,11 @@
     }
     .form-msg { display: none; font-size: 13px; line-height: 1.6; text-align: center; }
     .form-msg.show { display: block; }
+    .form-msg.is-error { color: #b00020; }
+    button[type="submit"]:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
 
     .icons {
       display: flex;
@@ -430,6 +435,7 @@
           <input type="text" name="name" placeholder="예약자명" maxlength="128" required>
           <input type="email" name="email" placeholder="EMAIL (기입하신 이메일 주소로 회신 드립니다)" maxlength="128" required>
           <textarea name="message" placeholder="문의사항을 남겨주세요." maxlength="16384" required></textarea>
+          <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0;overflow:hidden">
           <button type="submit">문의하기</button>
           <p class="form-msg" id="form-msg">문의가 접수되었습니다. 답변은 기입하신 이메일로 24시간 내 전송됩니다. (24시간 내 답변을 못 받으셨을 경우 teamminhee@gmail.com으로 메일 전송 부탁드립니다.)</p>
         </form>
@@ -463,16 +469,47 @@
   <script>
     const form = document.getElementById("contact-form");
     const msg = document.getElementById("form-msg");
-    form.addEventListener("submit", (event) => {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const successText = "문의가 접수되었습니다. 답변은 기입하신 이메일로 24시간 내 전송됩니다. (24시간 내 답변을 못 받으셨을 경우 teamminhee@gmail.com으로 메일 전송 부탁드립니다.)";
+    const errorText = "전송에 실패했습니다. 잠시 후 다시 시도하거나 teamminhee@gmail.com / X(@team_minhee)로 연락 바랍니다.";
+
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      msg.classList.remove("show", "is-error");
+      submitBtn.disabled = true;
+
       const data = new FormData(form);
-      const name = data.get("name");
-      const email = data.get("email");
-      const message = data.get("message");
-      const body = encodeURIComponent(`예약자명: ${name}\n이메일: ${email}\n\n${message}`);
-      window.location.href = `mailto:teamminhee@gmail.com?subject=${encodeURIComponent("[PHOTO EXHIBITION 문의] " + name)}&body=${body}`;
-      msg.classList.add("show");
-      form.reset();
+      const name = String(data.get("name") || "").trim();
+      const email = String(data.get("email") || "").trim();
+      const message = String(data.get("message") || "").trim();
+
+      try {
+        const res = await fetch("https://formsubmit.co/ajax/teamminhee@gmail.com", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify({
+            "예약자명": name,
+            "이메일": email,
+            "문의사항": message,
+            _subject: "[PHOTO EXHIBITION 문의] " + name,
+            _template: "table",
+            _replyto: email
+          })
+        });
+        if (!res.ok) throw new Error("submit failed");
+        form.reset();
+        msg.textContent = successText;
+        msg.classList.remove("is-error");
+        msg.classList.add("show");
+      } catch (err) {
+        msg.textContent = errorText;
+        msg.classList.add("show", "is-error");
+      } finally {
+        submitBtn.disabled = false;
+      }
     });
 
     const toTop = document.querySelector(".to-top");
